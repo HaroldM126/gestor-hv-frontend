@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import Navbar from './components/Navbar.vue' // 1. Importamos el Navbar
 </script>
 
 <template>
   <Navbar />
+
   <RouterView />
 </template>
 
 <style scoped>
-/* Estilo base opcional (puedes quitarlo si no lo necesitas) */
-:root {
-  font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
-  background-color: #f6f8fa;
-  color: #222;
-}
+/* 4. Borramos todos los estilos viejos de 'header', 'logo', etc. */
+/* Los estilos globales están en src/assets/main.css */
 </style>

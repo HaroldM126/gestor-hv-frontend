@@ -1,205 +1,119 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import Navbar from '@/components/Navbar.vue'
-
-const auth = useAuthStore()
+// No necesitamos scripts para esta vista estática por ahora
 </script>
 
 <template>
-  <!-- Navbar solo en Home (si lo quieres global, muévelo a App.vue) -->
-  <Navbar />
-
-  <section class="home">
-    <div class="container">
-      <div class="hero card">
-        <div class="badge">Plataforma Institucional</div>
-        <h1 class="title">Gestor de Hojas de Vida</h1>
-        <p class="subtitle">
-          Postulación, seguimiento y evaluación en un solo lugar.
-        </p>
-
-        <!-- Acciones según sesión -->
-        <div class="actions" v-if="!auth.isAuthenticated">
-          <RouterLink to="/login" class="btn btn-primary">Iniciar sesión</RouterLink>
-          <RouterLink to="/register" class="btn btn-outline">Crear cuenta</RouterLink>
-        </div>
-
-        <div class="actions" v-else>
-          <p class="welcome">Bienvenido, <b>{{ auth.user?.usuario }}</b></p>
-          <div class="actions-row">
-            <RouterLink to="/perfil" class="btn btn-primary">Ir a mi perfil</RouterLink>
-            <RouterLink v-if="auth.role === 'ADMIN'" to="/admins" class="btn btn-ghost">
-              Administradores
-            </RouterLink>
-          </div>
-        </div>
+  <main class="home-container">
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Bienvenido al Gestor de Hojas de Vida ITP</h1>
+        <p>Conectando el talento de nuestra institución con el mundo laboral.</p>
+        <router-link to="/register" class="cta-button">Crear mi cuenta</router-link>
       </div>
+    </section>
 
-      <!-- Info lateral -->
-      <aside class="info card">
-        <h2 class="card-title">¿Cómo empezar?</h2>
-        <ol class="steps">
-          <li>Crea tu cuenta o inicia sesión.</li>
-          <li>Completa tu perfil y sube tu hoja de vida.</li>
-          <li>Postúlate a las convocatorias activas.</li>
-        </ol>
-      </aside>
-    </div>
-  </section>
+    <section class="info-cards">
+      <div class="card">
+        <h3>Para Estudiantes</h3>
+        <p>Crea tu perfil, sube tu hoja de vida y postúlate a las mejores ofertas.</p>
+      </div>
+      <div class="card">
+        <h3>Para Empresas</h3>
+        <p>Encuentra el talento que necesitas. Publica tus vacantes y filtra perfiles.</p>
+      </div>
+      <div class="card">
+        <h3>Para Egresados</h3>
+        <p>Mantén tu perfil actualizado y accede a oportunidades exclusivas para nuestra comunidad.</p>
+      </div>
+    </section>
+  </main>
 </template>
 
 <style scoped>
-/* Lienzo general */
-.home {
-  min-height: 100vh;
-  background: radial-gradient(1200px 600px at 10% 10%, #0b6fbf22, transparent),
-    radial-gradient(1200px 600px at 90% 20%, #0b6fbf22, transparent),
-    linear-gradient(145deg, #0a4f86, #0e74b9);
-  padding: 2rem 1rem;
-  display: grid;
+.home-container {
+  width: 100%;
 }
 
-/* Grid de contenido */
-.container {
-  width: min(1100px, 100%);
-  margin: 0 auto;
-  display: grid;
-  gap: 1.5rem;
-}
-
-@media (min-width: 900px) {
-  .container {
-    grid-template-columns: 2fr 1fr;
-    align-items: start;
-  }
-}
-
-/* Tarjetas base */
-.card {
-  background: #fff;
-  color: #0e1a2a;
-  border-radius: 16px;
-  padding: clamp(1.25rem, 4vw, 2rem);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e6ebf1;
-}
-
-/* Bloque principal (hero) */
+/* Estilos para la sección principal (Hero) */
 .hero {
+  /* Usamos el azul de tu imagen */
+  background-color: #0056b3; 
+  color: white;
+  padding: 5rem 2rem;
   text-align: center;
+  border-bottom: 5px solid #ffc107; /* Un acento dorado/amarillo */
 }
 
-.badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  letter-spacing: .3px;
-  padding: .35rem .6rem;
-  border: 1px solid #d6dee6;
-  border-radius: 999px;
-  background: #f3f7fb;
-  color: #41576e;
-  margin-bottom: .75rem;
+.hero-content {
+  max-width: 800px;
+  margin: 0 auto;
 }
 
-.title {
-  font-size: clamp(1.7rem, 4vw, 2.4rem);
-  font-weight: 800;
-  margin: 0.15rem 0 0.35rem;
-  color: #0a2a4a;
-  letter-spacing: .2px;
-}
-
-.subtitle {
-  color: #5b6b7c;
-  margin: 0 0 1.25rem;
-  font-size: clamp(.98rem, 2.6vw, 1.05rem);
-}
-
-/* Acciones */
-.actions {
-  margin-top: .75rem;
-  display: grid;
-  gap: .75rem;
-}
-
-.actions-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: .75rem;
-  justify-content: center;
-}
-
-.welcome {
-  margin: 0 0 .25rem;
-  color: #33485f;
-}
-
-/* Info lateral */
-.info {
-  align-self: stretch;
-}
-
-.card-title {
-  font-size: 1.15rem;
-  margin: 0 0 .6rem;
-  color: #0a2a4a;
-  font-weight: 800;
-}
-
-.steps {
-  margin: 0;
-  padding-left: 1.2rem;
-  color: #4a5f74;
-  line-height: 1.7;
-}
-
-/* Botones reutilizables */
-.btn {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: .5rem;
-  text-decoration: none;
-  border-radius: 10px;
-  padding: .78rem 1rem;
+.hero h1 {
+  font-size: 2.8rem;
   font-weight: 700;
-  border: 1px solid transparent;
-  transition: transform .04s ease, background-color .18s ease, border-color .18s ease, color .18s ease;
+  margin-bottom: 1rem;
 }
 
-.btn:active {
-  transform: translateY(1px);
+.hero p {
+  font-size: 1.25rem;
+  margin-bottom: 2.5rem;
+  opacity: 0.9;
 }
 
-.btn-primary {
-  background: #0b6fbf;
-  color: #fff;
-  border-color: #0b6fbf;
+.cta-button {
+  background-color: #ffc107; /* Amarillo/Dorado como acento */
+  color: #333;
+  padding: 0.8rem 2rem;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1rem;
+  transition: transform 0.2s, background-color 0.2s;
 }
 
-.btn-primary:hover {
-  background: #085c9c;
-  border-color: #085c9c;
+.cta-button:hover {
+  background-color: #ffd65a;
+  transform: scale(1.05);
 }
 
-.btn-outline {
-  background: transparent;
-  color: #0b6fbf;
-  border-color: #0b6fbf;
+/* Estilos para las tarjetas */
+.info-cards {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 4rem 2rem;
+  flex-wrap: wrap; /* Para que se ajusten en móviles */
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
-.btn-outline:hover {
-  background: #e8f3ff;
+.card {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  width: 350px;
+  text-align: left;
+  transition: transform 0.3s, box-shadow 0.3s;
 }
 
-.btn-ghost {
-  background: #f7f9fc;
-  color: #0a2a4a;
-  border-color: #e5ebf1;
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
 }
 
-.btn-ghost:hover {
-  background: #eef4fb;
+.card h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0056b3;
+  margin-bottom: 1rem;
+}
+
+.card p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #444;
 }
 </style>

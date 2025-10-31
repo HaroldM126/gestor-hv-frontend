@@ -1,190 +1,86 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-
-const auth = useAuthStore()
-const router = useRouter()
-const menuOpen = ref(false)
-
-const logout = async () => {
-    auth.logout()
-    router.push('/login')
-}
+import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-    <nav class="navbar">
-        <div class="nav-container">
-            <!-- LOGO / NOMBRE APP -->
-            <RouterLink to="/" class="nav-logo">
-                Gestor HV
-            </RouterLink>
-
-            <!-- BOTÓN HAMBURGUESA -->
-            <button class="menu-toggle" @click="menuOpen = !menuOpen">
-                <span :class="{ open: menuOpen }"></span>
-                <span :class="{ open: menuOpen }"></span>
-                <span :class="{ open: menuOpen }"></span>
-            </button>
-
-            <!-- MENÚ -->
-            <div class="nav-links" :class="{ open: menuOpen }">
-                <RouterLink to="/" class="nav-link" @click="menuOpen = false">Inicio</RouterLink>
-                <RouterLink to="/about" class="nav-link" @click="menuOpen = false">Acerca</RouterLink>
-
-                <template v-if="auth.isAuthenticated">
-                    <RouterLink to="/perfil" class="nav-link" @click="menuOpen = false">
-                        Perfil
-                    </RouterLink>
-
-                    <RouterLink v-if="auth.role === 'ADMIN'" to="/admins" class="nav-link" @click="menuOpen = false">
-                        Administradores
-                    </RouterLink>
-
-                    <button class="btn-logout" @click="logout">Cerrar sesión</button>
-                </template>
-
-                <template v-else>
-                    <RouterLink to="/login" class="nav-link" @click="menuOpen = false">
-                        Iniciar sesión
-                    </RouterLink>
-                    <RouterLink to="/register" class="nav-link" @click="menuOpen = false">
-                        Registrarse
-                    </RouterLink>
-                </template>
-            </div>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <div class="navbar-brand">
+        <img src="https://i0.wp.com/itp.edu.co/ITP2022/wp-content/uploads/2025/07/Logo-azul-PNG-01-scaled.png?fit=768%2C248&ssl=1" alt="Logo Universidad del Putumayo" class="logo" />
+        <span class="brand-name">Gestor HV - ITP</span>
+      </div>
+      <div class="navbar-links">
+        <RouterLink to="/">Inicio</RouterLink>
+        <RouterLink to="/about">Acerca de</RouterLink>
+        <RouterLink to="/perfil">Mi Perfil</RouterLink>
+        
         </div>
-    </nav>
+    </div>
+  </nav>
 </template>
 
 <style scoped>
-/* NAVBAR BASE */
 .navbar {
-    background-color: #0b6fbf;
-    color: #fff;
-    width: 100%;
-    padding: 0.8rem 1.2rem;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+  width: 100%;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
-.nav-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 1150px;
-    margin: 0 auto;
+.navbar-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* LOGO */
-.nav-logo {
-    font-weight: 800;
-    font-size: 1.25rem;
-    color: #fff;
-    text-decoration: none;
-    letter-spacing: 0.5px;
+.navbar-brand {
+  display: flex;
+  align-items: center;
 }
 
-/* LINKS */
-.nav-links {
-    display: flex;
-    align-items: center;
-    gap: 1.2rem;
+.logo {
+  height: 50px; /* Ajusta la altura del logo según tus necesidades */
+  margin-right: 12px;
+  /* Si el logo tiene mucho espacio transparente, 
+     puedes ajustar el 'width' también o usar 'object-fit' */
+  object-fit: contain; 
 }
 
-.nav-link {
-    color: #fff;
-    text-decoration: none;
-    font-weight: 500;
-    transition: opacity 0.2s ease;
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
 }
 
-.nav-link:hover {
-    opacity: 0.8;
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 24px; /* Espacio entre los enlaces */
 }
 
-/* BOTÓN LOGOUT */
-.btn-logout {
-    background: transparent;
-    color: #fff;
-    border: 1px solid #fff;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s ease, color 0.2s ease;
+.navbar-links a {
+  text-decoration: none;
+  color: #555;
+  font-weight: 500;
+  transition: color 0.3s;
+  padding-bottom: 4px; /* Para que el borde no se pegue al texto */
 }
 
-.btn-logout:hover {
-    background: #fff;
-    color: #0b6fbf;
+.navbar-links a:hover {
+  color: #0056b3; /* Un azul que combine con el logo */
 }
 
-/* HAMBURGUESA */
-.menu-toggle {
-    display: none;
-    flex-direction: column;
-    justify-content: space-between;
-    width: 25px;
-    height: 18px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
+/* Estilo para el enlace activo */
+.navbar-links a.router-link-exact-active {
+  color: #0056b3;
+  border-bottom: 2px solid #0056b3;
 }
 
-.menu-toggle span {
-    height: 3px;
-    width: 100%;
-    background-color: white;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-}
-
-.menu-toggle span.open:nth-child(1) {
-    transform: translateY(7.5px) rotate(45deg);
-}
-
-.menu-toggle span.open:nth-child(2) {
-    opacity: 0;
-}
-
-.menu-toggle span.open:nth-child(3) {
-    transform: translateY(-7.5px) rotate(-45deg);
-}
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-    .menu-toggle {
-        display: flex;
-    }
-
-    .nav-links {
-        position: absolute;
-        top: 60px;
-        right: 0;
-        background-color: #0b6fbf;
-        flex-direction: column;
-        align-items: flex-start;
-        width: 200px;
-        padding: 1rem;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        box-shadow: -3px 5px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .nav-links.open {
-        transform: translateX(0);
-    }
-
-    .nav-link,
-    .btn-logout {
-        width: 100%;
-        text-align: left;
-        padding: 0.5rem 0;
-    }
-}
+/* Los estilos para los botones .nav-button-primary y .nav-button-secondary se eliminan 
+   ya que esos enlaces ya no existen en el Navbar. */
 </style>
