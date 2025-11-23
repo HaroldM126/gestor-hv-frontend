@@ -11,3 +11,10 @@ export interface LoginResponse {
     access_token: string;
     user: User;
 }
+
+export interface RegisterPayload {
+    nombre: string;
+    usuario: string;
+    password: string;
+    rol?: Role; // opcional
+}

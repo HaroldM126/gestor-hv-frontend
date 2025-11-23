@@ -1,87 +1,90 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '../views/HomeView.vue';
-import { useAuthStore } from '../stores/auth'; // <-- store de auth (Pinia)
+import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteLocationNormalized } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+import Forbidden from '../views/Forbidden.vue'
+import NotFound from '../views/NotFound.vue'
+import AppHome from '../views/AppHome.vue'
+
+const PublicLayout = () => import('@/layouts/PublicLayout.vue')
+const AppLayout = () => import('@/layouts/AppLayout.vue')
+
+const PublicHome = () => import('@/views/PublicHome.vue')
+const AboutView = () => import('@/views/AboutView.vue')
+const LoginView = () => import('@/views/Auth/LoginView.vue')
+const RegisterView = () => import('@/views/Auth/RegisterView.vue')
+const ProfileView = () => import('@/views/ProfileView.vue')
+const AdminsView = () => import('@/views/admin/AdminsView.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior() {
+    return { top: 0 }
+  },
   routes: [
-    // Rutas existentes (públicas)
+    // Público
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
+      component: PublicLayout,
       meta: { public: true },
-    },
-    {
-      path: '/about',
-      name: 'about',
-      component: () => import('../views/AboutView.vue'),
-      meta: { public: true },
-    },
-
-    // Auth públicas
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('../views/LoginView.vue'),
-      meta: { public: true },
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: () => import('../views/RegisterView.vue'),
-      meta: { public: true },
+      children: [
+        { path: '', name: 'public-home', component: PublicHome, meta: { public: true } },
+        { path: 'about', name: 'about', component: AboutView, meta: { public: true } },
+        { path: 'login', name: 'login', component: LoginView, meta: { public: true, guestOnly: true } },
+        { path: 'register', name: 'register', component: RegisterView, meta: { public: true, guestOnly: true } },
+      ],
     },
 
-    // Perfil (requiere JWT)
+    // Autenticado
     {
-      path: '/perfil',
-      name: 'perfil',
-      component: () => import('../views/ProfileView.vue'),
+      path: '/app',
+      component: AppLayout,
       meta: { requiresAuth: true },
+      children: [
+        { path: '', name: 'app-home', component: AppHome },
+        { path: 'perfil', name: 'perfil', component: ProfileView },
+        { path: 'admins', name: 'admins', component: AdminsView, meta: { roles: ['ADMIN'] } },
+      ],
     },
 
-    // Solo ADMIN (JWT + rol)
-    {
-      path: '/admins',
-      name: 'admins',
-      component: () => import('../views/AdminsView.vue'),
-      meta: { requiresAuth: true, roles: ['ADMIN'] },
-    },
-
-
+    { path: '/forbidden', name: 'forbidden', component: Forbidden, meta: { public: true } },
+    { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFound, meta: { public: true } },
   ],
-});
+})
 
-// Guardia global: verifica login y rol antes de entrar a cada ruta
-router.beforeEach(async (to) => {
-  const auth = useAuthStore();
+router.beforeEach(async (to: RouteLocationNormalized) => {
+  const auth = useAuthStore()
 
-  // Si hay token pero aún no hay usuario en memoria (recarga), hidrata y valida /auth/me
+  // Rehidratar si hay token pero no user (evita parpadeos al recargar)
   if (!auth.user && auth.token) {
     try {
-      await auth.hydrateFromStorage();
+      await auth.hydrateFromStorage()
     } catch {
-      auth.logout(true);
+      auth.logout(true)
     }
   }
 
-  // Rutas públicas pasan directo
-  if (to.meta.public) return true;
+  // Evita login/register si ya está autenticado
+  if (to.meta.guestOnly && auth.isAuthenticated) {
+    return { name: 'app-home' }
+  }
 
-  // Rutas que requieren auth
+  // Rutas públicas pasan derecho
+  if (to.meta.public) return true
+
+  // Rutas privadas requieren auth
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return { name: 'login', query: { redirect: to.fullPath } };
+    return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  // Validación por roles si la ruta lo exige
-  const roles = to.meta.roles as string[] | undefined;
-  if (roles && roles.length > 0) {
-    const ok = roles.includes(auth.role as string);
-    if (!ok) return { name: 'forbidden' };
+  // Chequeo de roles si aplica
+  const roles = (to.meta.roles as string[] | undefined) ?? []
+  if (roles.length > 0) {
+    const ok = roles.includes(auth.role as string)
+    if (!ok) return { name: 'forbidden' }
   }
 
-  return true;
-});
+  return true
+})
 
-export default router;
+export default router
