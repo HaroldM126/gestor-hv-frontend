@@ -1,18 +1,24 @@
 <template>
   <div class="document-upload">
-    <div
-      class="upload-area"
-      @drop="onDrop"
-      @dragover="onDragOver"
-      @dragleave="onDragLeave"
-      :class="{ 'drag-over': isDragOver }"
-    >
-      <input type="file" ref="fileInput" @change="onFileSelect" multiple style="display: none" />
-
+    <div class="upload-area" 
+         @drop="onDrop"
+         @dragover="onDragOver"
+         @dragleave="onDragLeave"
+         :class="{ 'drag-over': isDragOver }">
+      <input
+        type="file"
+        ref="fileInput"
+        @change="onFileSelect"
+        multiple
+        style="display: none"
+      />
+      
       <div class="upload-content">
         <i class="upload-icon">📁</i>
         <p>Arrastra tus documentos aquí o</p>
-        <button @click="triggerFileInput" class="btn-primary">Seleccionar archivos</button>
+        <button @click="triggerFileInput" class="btn-primary">
+          Seleccionar archivos
+        </button>
         <p class="file-types">Formatos permitidos: PDF, DOC, DOCX, JPEG, PNG (Max. 10MB)</p>
       </div>
     </div>
@@ -29,7 +35,7 @@
           <button @click="removeFile(index)" class="btn-danger">Eliminar</button>
         </div>
       </div>
-
+      
       <div class="upload-actions">
         <button @click="uploadFiles" :disabled="uploading" class="btn-success">
           {{ uploading ? 'Subiendo...' : 'Subir documentos' }}
@@ -78,7 +84,7 @@ const onFileSelect = (event: Event) => {
 const onDrop = (event: DragEvent) => {
   event.preventDefault()
   isDragOver.value = false
-
+  
   if (event.dataTransfer?.files) {
     processFiles(Array.from(event.dataTransfer.files))
   }
@@ -95,38 +101,34 @@ const onDragLeave = (event: DragEvent) => {
 }
 
 const processFiles = (files: File[]) => {
-  const validFiles = files.filter((file) => {
-    // Validar tamaño (10MB máximo)
+  const validFiles = files.filter(file => {
     if (file.size > 10 * 1024 * 1024) {
       alert(`El archivo ${file.name} excede el tamaño máximo de 10MB`)
       return false
     }
-
-    // Validar tipo de archivo
+    
     const allowedTypes = [
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'image/jpeg',
-      'image/png',
+      'image/png'
     ]
-
+    
     if (!allowedTypes.includes(file.type)) {
       alert(`El archivo ${file.name} no tiene un formato permitido`)
       return false
     }
-
+    
     return true
   })
 
-  selectedFiles.value.push(
-    ...validFiles.map((file) => ({
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      file: file,
-    })),
-  )
+  selectedFiles.value.push(...validFiles.map(file => ({
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    file: file
+  })))
 }
 
 const removeFile = (index: number) => {
@@ -152,14 +154,10 @@ const uploadFiles = async () => {
   uploadProgress.value = 0
 
   try {
-    // Simular progreso de carga (reemplazar con tu API real)
     for (let i = 0; i <= 100; i += 10) {
-      await new Promise((resolve) => setTimeout(resolve, 200))
+      await new Promise(resolve => setTimeout(resolve, 200))
       uploadProgress.value = i
     }
-
-    // Aquí iría la llamada real a tu API
-    // await uploadToAPI(selectedFiles.value)
 
     alert('Documentos subidos exitosamente')
     clearFiles()
