@@ -16,19 +16,23 @@ export const useAuthStore = defineStore('auth', {
 
     actions: {
         async hydrateFromStorage() {
-            // Si hay token pero no user, intenta /auth/me
-            if (this.token && !this.user) {
-                const { data } = await http.get<User>('/auth/me')
-                this.user = data
-                localStorage.setItem('user', JSON.stringify(data))
-            }
-        },
+    if (!this.token) return null
+
+    try {
+        const { data } = await http.get<User>('/auth/me')
+        this.user = data
+        localStorage.setItem('user', JSON.stringify(data))
+    } catch (e) {
+        this.logout(true)
+    }
+},
 
         async login(usuario: string, password: string) {
             this.loading = true
             try {
                 const body = { usuario: usuario.trim().toLowerCase(), password }
                 const { data } = await http.post<LoginResponse>('/auth/login', body)
+                console.log("ROL EN LOGIN:", data.user.rol)
                 this.token = data.access_token
                 this.user = data.user
                 localStorage.setItem('access_token', data.access_token)
@@ -56,6 +60,7 @@ export const useAuthStore = defineStore('auth', {
         async fetchMe() {
             if (!this.token) return null
             const { data } = await http.get<User>('/auth/me')
+            console.log("ME RESPONSE:", data)
             this.user = data
             localStorage.setItem('user', JSON.stringify(data))
             return data
