@@ -17,6 +17,17 @@ function isAuthPublicUrl(url?: string | null): boolean {
     return url.includes('/auth/login') || url.includes('/auth/register')
 }
 
+http.interceptors.response.use(
+    res => {
+        console.log("RESPONSE OK:", res.config.url, res.status)
+        return res
+    },
+    err => {
+        console.log("RESPONSE ERROR:", err.config?.url, err.response?.status)
+        return Promise.reject(err)
+    }
+)
+
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const auth = useAuthStore()
     // lee TODAS las variantes comunes de claves
