@@ -2,7 +2,7 @@
 <template>
   <div class="documentos-list">
     <h3>📋 Documentos Requeridos para Postulación</h3>
-    <p class="subtitle">Debes subir todos los documentos listados below</p>
+    <p class="subtitle">Debes subir todos los documentos listados</p>
     
     <div class="documentos-grid">
       <div 
@@ -121,6 +121,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import api from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 
 interface Props {
   documentos: any[]
@@ -213,37 +214,186 @@ const subirDocumento = async () => {
   subiendo.value = true
 
   try {
+    const auth = useAuthStore()
+    const token = auth.token
+    
+    console.log('🔍 Token para subir:', token ? 'SÍ' : 'NO')
+    console.log('🔍 Postulación ID:', props.postulacionId)
+    console.log('🔍 Tipo documento:', documentoActual.value.tipo)
+    console.log('🔍 Archivo:', archivoSeleccionado.value.name)
+    
+    if (!token) {
+      alert('❌ No estás autenticado. Vuelve a iniciar sesión.')
+      return
+    }
+    
+    // 1. Crear FormData
     const formData = new FormData()
     formData.append('archivo', archivoSeleccionado.value)
     formData.append('tipoDocumento', documentoActual.value.tipo)
-
-    const res = await api.post(
-      `/postulaciones/${props.postulacionId}/documentos`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+    
+    // 2. Usar FETCH directamente (más confiable)
+    const url = `/api/postulaciones/${props.postulacionId}/documentos`
+    console.log('🔍 URL de subida:', url)
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // NO agregar 'Content-Type' - Fetch lo maneja automáticamente con FormData
+      },
+      body: formData
+    })
+    
+    console.log('📊 Response status:', response.status)
+    console.log('📊 Response ok:', response.ok)
+    
+    if (response.status === 401) {
+      // Token inválido o expirado
+      alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.')
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+      return
+    }
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Error response:', errorText)
+      let errorMessage = `Error ${response.status}`
+      
+      try {
+        const errorJson = JSON.parse(errorText)
+        errorMessage = errorJson.message || errorText
+      } catch {
+        errorMessage = errorText || `Error ${response.status}`
       }
-    )
-
-    emit('documentoSubido', res.data)
+      
+      throw new Error(errorMessage)
+    }
+    
+    // 3. Procesar respuesta exitosa
+    const data = await response.json()
+    console.log('✅ Documento subido exitosamente:', data)
+    
+    // 4. Emitir evento y cerrar modal
+    emit('documentoSubido', data)
     cerrarModal()
     
+    // 5. Feedback al usuario
+    setTimeout(() => {
+      alert(`✅ Documento "${archivoSeleccionado.value?.name}" subido exitosamente`)
+    }, 100)
+    
   } catch (error: any) {
-    console.error('Error subiendo documento:', error)
-    alert(error.response?.data?.message || 'Error al subir documento')
+    console.error('❌ Error completo subiendo documento:', error)
+    
+    // Mensajes más específicos
+    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+      alert('❌ Error de conexión. Verifica tu internet e intenta nuevamente.')
+    } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+      alert('🔐 Sesión expirada. Por favor, inicia sesión nuevamente.')
+      window.location.href = '/login'
+    } else if (error.message.includes('413') || error.message.includes('large')) {
+      alert('📁 El archivo es demasiado grande. Máximo 5MB.')
+    } else {
+      alert(`❌ Error al subir documento: ${error.message}`)
+    }
   } finally {
     subiendo.value = false
   }
 }
 
-const descargarDocumento = (tipo: string) => {
+const auth = useAuthStore()
+
+const descargarDocumento = async (tipo: string) => {
   const documento = obtenerDocumentoSubido(tipo)
-  if (documento) {
-    // Aquí implementarías la descarga
-    console.log('Descargar:', documento)
-    alert(`Funcionalidad de descarga para: ${documento.nombreArchivo}`)
+  if (!documento) {
+    console.error('❌ Documento no encontrado para tipo:', tipo)
+    return
+  }
+  
+  try {
+    const auth = useAuthStore()
+    const token = auth.token
+    
+    console.log('🔍 Iniciando descarga del documento:', {
+      id: documento.id,
+      nombre: documento.nombreArchivo,
+      tipo: documento.tipoDocumento
+    })
+    
+    if (!token) {
+      alert('🔐 No estás autenticado. Inicia sesión nuevamente.')
+      window.location.href = '/login'
+      return
+    }
+    
+    // URL de descarga
+    const url = `/api/postulaciones/documentos/${documento.id}/download`
+    console.log('🔍 URL de descarga:', url)
+    
+    // Hacer la petición
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': '*/*'
+      }
+    })
+    
+    console.log('📊 Response status:', response.status)
+    console.log('📊 Response ok:', response.ok)
+    
+    // Manejar errores HTTP
+    if (response.status === 401) {
+      alert('🔐 Sesión expirada. Inicia sesión nuevamente.')
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+      return
+    }
+    
+    if (response.status === 404) {
+      alert('📄 El documento no se encuentra en el servidor.')
+      return
+    }
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Error en response:', errorText)
+      throw new Error(errorText || `Error ${response.status}`)
+    }
+    
+    // Obtener el blob
+    const blob = await response.blob()
+    console.log('✅ Blob recibido, tamaño:', blob.size)
+    
+    // Crear URL para el blob
+    const blobUrl = window.URL.createObjectURL(blob)
+    
+    // Crear elemento <a> para descarga
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = documento.nombreArchivo || 'documento'
+    link.style.display = 'none'
+    
+    // Agregar al DOM y hacer clic
+    document.body.appendChild(link)
+    link.click()
+    
+    // Limpiar
+    setTimeout(() => {
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+      console.log('✅ Descarga completada')
+    }, 100)
+    
+  } catch (error: any) {
+    console.error('❌ Error completo en descarga:', error)
+    
+    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+      alert('🌐 Error de conexión. Verifica tu internet.')
+    } else {
+      alert(`❌ Error al descargar: ${error.message}`)
+    }
   }
 }
 </script>
