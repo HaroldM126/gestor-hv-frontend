@@ -14,7 +14,7 @@
 
         <section class="info-cards">
             <div class="card">
-                <h3>Para Estudiantes</h3>
+                <h3>Para Docentes</h3>
                 <p>Crea tu perfil, sube tu hoja de vida y postúlate a las mejores ofertas.</p>
             </div>
             <div class="card">

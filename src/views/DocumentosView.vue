@@ -11,7 +11,7 @@
     <!-- Estado de la postulación -->
     <div class="estado-section" v-if="!errorPostulacion">
       <div class="estado-badge" :class="estadoClass">Estado: {{ postulacion.estado }}</div>
-      <p v-if="postulacion.estado === 'borrador'" class="estado-message">
+      <p v-if="postulacion?.estado === 'borrador'" class="estado-message">
         📝 Subí todos los documentos requeridos para enviar tu postulación
       </p>
       <p v-else-if="postulacion.estado === 'enviada'" class="estado-message">
@@ -33,11 +33,11 @@
     <!-- Mensaje de error -->
     <div v-if="errorPostulacion" class="alert alert-error">
       <h3>⚠️ No se pudo cargar la postulación completa</h3>
-      <p>Pero puedes continuar subiendo documentos. ID de postulación: {{ postulacionId }}</p>
+      <p>Pero puedes continuar subiendo documentos.</p>
       <button @click="recargarDatos" class="btn-reintentar">🔄 Reintentar carga</button>
     </div>
 
-    <!-- Lista de documentos -->
+    <!-- Lista de documentos (ESTE COMPONENTE YA TIENE EL BOTÓN DE DESCARGA) -->
     <DocumentosList
       :documentos="documentos"
       :postulacionId="postulacionId"
@@ -80,9 +80,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DocumentosList from '@/components/DocumentosList.vue'
+import { useAuthStore } from '@/stores/auth' 
 import api from '@/services/api'
 
-// Types
 interface Documento {
   id: number
   tipoDocumento: string
@@ -94,6 +94,7 @@ interface Documento {
 interface Convocatoria {
   id: number
   nombre: string
+  programa?: string
 }
 
 interface Postulacion {
@@ -103,8 +104,11 @@ interface Postulacion {
   fechaCreacion: string
   fechaEnvio?: string
   convocatoria?: Convocatoria
+  documentos?: Documento[]
 }
 
+// AGREGAR ESTO:
+const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -117,32 +121,33 @@ const enviando = ref(false)
 const mensajeExito = ref('')
 const errorPostulacion = ref(false)
 
-// Lista completa de tipos de documentos requeridos
+// Tipos requeridos
 const todosLosTiposDocumentos = [
-  'a', 'b', 'c_front', 'c_back', 'd', 'e', 'f', 'g', 
+  'a', 'b', 'c_front', 'c_back', 'd', 'e', 'f', 'g',
   'h', 'i', 'j', 'k', 'l', 'm', 'n'
 ]
 
-// Computed
+// Computeds dinámicos
 const todosDocumentosCompletos = computed(() => {
-  const tiposSubidos = documentos.value.map((doc) => doc.tipoDocumento)
-  return todosLosTiposDocumentos.every((tipo) => tiposSubidos.includes(tipo))
+  const tiposSubidos = documentos.value.map(d => d.tipoDocumento)
+  return todosLosTiposDocumentos.every(tipo => tiposSubidos.includes(tipo))
 })
 
 const documentosFaltantes = computed(() => {
-  const tiposSubidos = documentos.value.map((doc) => doc.tipoDocumento)
-  return todosLosTiposDocumentos.filter((tipo) => !tiposSubidos.includes(tipo))
+  const tiposSubidos = documentos.value.map(d => d.tipoDocumento)
+  return todosLosTiposDocumentos.filter(tipo => !tiposSubidos.includes(tipo))
 })
 
 const estadoClass = computed(() => {
   return `estado-${postulacion.value.estado}`
 })
 
-// Methods
+// Eventos
 const onDocumentoSubido = (nuevoDocumento: Documento) => {
   documentos.value.push(nuevoDocumento)
 }
 
+// Enviar - CORREGIR TAMBIÉN
 const enviarPostulacion = async () => {
   if (!todosDocumentosCompletos.value) return
 
@@ -150,23 +155,39 @@ const enviarPostulacion = async () => {
   mensajeExito.value = ''
 
   try {
-    console.log('🚀 Enviando postulación ID:', postulacionId.value)
-    await api.post(`/postulaciones/${postulacionId.value}/enviar`)
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+    
+    // USAR auth.token
+    if (auth.token) {
+      headers['Authorization'] = `Bearer ${auth.token}`
+    }
+
+    const res = await fetch(`/api/postulaciones/${postulacionId.value}/enviar`, {
+      method: 'POST',
+      headers,
+    })
+
+    if (!res.ok) {
+      const errorData = await res.json()
+      throw new Error(errorData.message || `Error ${res.status}`)
+    }
 
     mensajeExito.value = '✅ Postulación enviada exitosamente! Serás notificado sobre el resultado.'
-
-    // Recargar datos para actualizar el estado
-    await cargarPostulacion()
+    await cargarDatos()
+    
   } catch (error: any) {
     console.error('❌ Error enviando postulación:', error)
-    alert(error.response?.data?.message || 'Error al enviar la postulación')
+    alert(error.message || 'Error al enviar la postulación')
   } finally {
     enviando.value = false
   }
 }
 
 const volverAConvocatorias = () => {
-  router.push('/convocatorias')
+  router.push('/app/convocatorias')
 }
 
 const recargarDatos = () => {
@@ -185,68 +206,78 @@ const formatFecha = (fecha: string) => {
   })
 }
 
-// Cargar datos - VERSIÓN MEJORADA
+// Cargar postulación - CORREGIDO
 const cargarPostulacion = async (): Promise<boolean> => {
   try {
-    console.log('🔍 Cargando postulación ID:', postulacionId.value)
-    const res = await api.get(`/postulaciones/${postulacionId.value}`)
-    console.log('✅ Postulación cargada:', res.data)
-    postulacion.value = res.data
-    return true
-  } catch (error: any) {
-    console.error('❌ Error cargando postulación:', error)
+    console.log('🔍 auth.token:', auth.token)
+    console.log('🔍 localStorage token:', localStorage.getItem('token'))
     
-    // Si falla pero tenemos el ID, usar datos básicos para continuar
-    if (postulacionId.value) {
-      console.log('🔄 Usando datos básicos para continuar...')
-      postulacion.value = {
-        id: postulacionId.value,
-        estado: 'borrador',
-        programaObjetivo: 'Postulación en proceso',
-        fechaCreacion: new Date().toISOString(),
-        convocatoria: { id: 0, nombre: 'Convocatoria' }
-      }
-      errorPostulacion.value = true
-      return false
-    } else {
-      alert('Error: No se pudo identificar la postulación')
-      router.push('/convocatorias')
-      return false
+    const headers: Record<string, string> = {
+      'Accept': 'application/json'
     }
-  }
-}
+    
+    // USAR auth.token NO localStorage
+    if (auth.token) {
+      headers['Authorization'] = `Bearer ${auth.token}`
+      console.log('🔍 Usando auth.token')
+    } else {
+      console.warn('⚠️ auth.token no disponible, probando localStorage')
+      const localToken = localStorage.getItem('token')
+      if (localToken) {
+        headers['Authorization'] = `Bearer ${localToken}`
+      }
+    }
 
-const cargarDocumentos = async () => {
-  try {
-    console.log('📄 Cargando documentos para postulación:', postulacionId.value)
-    const res = await api.get(`/postulaciones/${postulacionId.value}/documentos`)
-    console.log('✅ Documentos cargados:', res.data.length)
-    documentos.value = res.data
+    // MISMA RUTA QUE MisPostulaciones.vue
+    const res = await fetch(`/api/postulaciones/${postulacionId.value}`, {
+      method: 'GET',
+      headers,
+    })
+
+    console.log('📊 Response status:', res.status)
+    
+    if (!res.ok) {
+      // Intentar con api (axios) como fallback
+      try {
+        console.log('🔄 Probando con axios...')
+        const axiosRes = await api.get(`/postulaciones/${postulacionId.value}`)
+        console.log('✅ Axios funcionó:', axiosRes.data)
+        
+        postulacion.value = axiosRes.data
+        documentos.value = axiosRes.data.documentos || []
+        return true
+      } catch (axiosError) {
+        console.error('❌ Axios también falló:', axiosError)
+      }
+      
+      const errorText = await res.text()
+      console.error('❌ Fetch error:', errorText)
+      throw new Error(errorText || `Error ${res.status}`)
+    }
+
+    const data = await res.json()
+    console.log('✅ Data recibida:', data)
+    
+    postulacion.value = data
+    documentos.value = data.documentos || []
+    
+    return true
+
   } catch (error: any) {
-    console.error('❌ Error cargando documentos:', error)
-    // No bloqueamos la UI si falla la carga de documentos
-    documentos.value = []
+    console.error('❌ Error completo:', error)
+    errorPostulacion.value = true
+    return false
   }
 }
 
+// Carga general
 const cargarDatos = async () => {
   cargando.value = true
   errorPostulacion.value = false
-  
+
   try {
-    // Cargar postulación y documentos en paralelo
-    const [postulacionCargada] = await Promise.allSettled([
-      cargarPostulacion(),
-      cargarDocumentos()
-    ])
-
-    // Si la postulación falló completamente, mostrar error
-    if (postulacionCargada.status === 'rejected') {
-      errorPostulacion.value = true
-    }
-
-  } catch (error) {
-    console.error('❌ Error general cargando datos:', error)
+    await cargarPostulacion()
+  } catch (e) {
     errorPostulacion.value = true
   } finally {
     cargando.value = false
@@ -255,15 +286,13 @@ const cargarDatos = async () => {
 
 onMounted(() => {
   if (!postulacionId.value || isNaN(postulacionId.value)) {
-    console.error('❌ ID de postulación inválido:', route.params.id)
-    router.push('/convocatorias')
+    router.push('/app/convocatorias')
     return
   }
-  
-  console.log('🎯 Iniciando vista de documentos para postulación ID:', postulacionId.value)
   cargarDatos()
 })
 </script>
+
 
 <style scoped>
 .documentos-view {
